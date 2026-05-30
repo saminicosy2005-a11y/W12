@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+    <title>Banco DC WiFi</title>
+
+    <!-- CHART -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- XLSX -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <!-- SCREENSHOT -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <!-- FUENTE -->
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap"
+          rel="stylesheet">
+
+    <style>
+
+        :root {
+
+            --bg: #0D1321;
+            --card: #FFFFFF;
+            --border: #ffffff;
+
+            --cyan: #38bdf8;
+            --green: #4ade80;
+            --yellow: #facc15;
+            --pink: #fb7185;
+
+            --text: #353535;
+            --subtext: #F0EBD8;
+        }
+
+        * {
+
+            box-sizing: border-box;
+        }
+
+        body {
+
+            margin: 0;
+            padding: 30px;
+
+            background: var(--bg);
+
+            color: var(--text);
+
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        h1 {
+
+            text-align: center;
+
+            color: white;
+
+            font-size: 64px;
+
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+
+            text-align: center;
+
+            color: var(--subtext);
+
+            font-size: 22px;
+
+            margin-bottom: 25px;
+        }
+
+        /* ==========================================
+           ESTADO
+        ========================================== */
+
+        .estado {
+
+            width: fit-content;
+
+            margin: auto;
+
+            padding: 12px 28px;
+
+            border-radius: 18px;
+
+            font-size: 20px;
+
+            font-weight: bold;
+
+            margin-bottom: 30px;
+
+            color: white;
+
+            background: #ef4444;
+        }
+
+        .controls {
+
+            display: flex;
+
+            justify-content: center;
+
+            flex-wrap: wrap;
+
+            gap: 16px;
+
+            margin-bottom: 35px;
+        }
+
+        button {
+
+            background: linear-gradient(
+                135deg,
+                #783F8E,
+                #4F1271
+            );
+
+            border: none;
+
+            color: white;
+
+            padding: 18px 34px;
+
+            border-radius: 18px;
+
+            font-size: 20px;
+
+            cursor: pointer;
+
+            transition: 0.25s;
+
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        button:hover {
+
+            transform: scale(1.03);
+        }
+
+        select {
+
+            background: var(--card);
+
+            color: var(--text);
+
+            border: 1px solid var(--border);
+
+            border-radius: 16px;
+
+            padding: 14px 18px;
+
+            font-size: 18px;
+
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .cards {
+
+            display: grid;
+
+            grid-template-columns: repeat(2, 1fr);
+
+            gap: 25px;
+
+            margin-bottom: 35px;
+        }
+
+        .card {
+
+            background: var(--card);
+
+            border-radius: 24px;
+
+            padding: 30px;
+
+            border: 1px solid var(--border);
+
+            text-align: center;
+        }
+
+        .card h2 {
+
+            margin: 0;
+
+            color: var(--text);
+
+            font-size: 28px;
+        }
+
+        .value {
+
+            margin-top: 16px;
+
+            font-size: 52px;
+
+            font-weight: bold;
+        }
+
+        #voltaje {
+
+            color: var(--cyan);
+        }
+
+        #corriente {
+
+            color: var(--green);
+        }
+
+        #potencia {
+
+            color: var(--yellow);
+        }
+
+        #temperatura {
+
+            color: var(--pink);
+        }
+
+        .charts {
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 35px;
+        }
+
+        .chart-box {
+
+            background: var(--card);
+
+            border-radius: 24px;
+
+            padding: 25px;
+
+            border: 1px solid var(--border);
+        }
+
+        .chart-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+
+            font-size: 30px;
+
+            font-weight: bold;
+        }
+
+        .download-btn {
+
+            padding: 12px 22px;
+
+            font-size: 16px;
+        }
+
+        canvas {
+
+            width: 100% !important;
+
+            height: 420px !important;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <h1>BANCO DC</h1>
+
+    <div class="subtitle">
+
+        Sistema de monitoreo WiFi ESP32
+
+    </div>
+
+    <!-- ESTADO -->
+
+    <div class="estado"
+         id="estadoConexion">
+
+        🔴 DESCONECTADO
+
+    </div>
+
+    <!-- CONTROLES -->
+
+    <div class="controls">
+
+        <select id="motorSelect"
+                onchange="reiniciarSistema()">
+
+            <option>DC130</option>
+
+            <option>MOTOR RS775</option>
+
+            <option>MOTOR N20</option>
+
+            <option>MOTOR 12V HIGH TORQUE</option>
+
+            <option>MOTOR BRUSHLESS</option>
+
+        </select>
+
+        <button onclick="iniciarLectura()">
+
+            Iniciar
+        </button>
+
+        <button onclick="togglePausa()"
+                id="btnPause">
+
+            Pausar
+        </button>
+
+        <button onclick="capturarDashboard()">
+
+            Captura Dashboard
+        </button>
+
+        <button onclick="exportarExcel()">
+
+            Exportar Excel
+        </button>
+
+    </div>
+
+    <!-- CARDS -->
+
+    <div class="cards">
+
+        <div class="card">
+
+            <h2>Voltaje</h2>
+
+            <div class="value"
+                 id="voltaje">
+
+                0 V
+
+            </div>
+
+        </div>
+
+        <div class="card">
+
+            <h2>Corriente</h2>
+
+            <div class="value"
+                 id="corriente">
+
+                0 A
+
+            </div>
+
+        </div>
+
+        <div class="card">
+
+            <h2>Potencia</h2>
+
+            <div class="value"
+                 id="potencia">
+
+                0 W
+
+            </div>
+
+        </div>
+
+        <div class="card">
+
+            <h2>Temperatura</h2>
+
+            <div class="value"
+                 id="temperatura">
+
+                0 °C
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- GRAFICAS -->
+
+    <div class="charts">
+
+        <div class="chart-box">
+
+            <div class="chart-header">
+
+                <div class="chart-title">
+
+                    Voltaje
+
+                </div>
+
+                <button class="download-btn"
+                        onclick="descargarGrafica('grafVoltaje','Voltaje')">
+
+                    Descargar
+                </button>
+
+            </div>
+
+            <canvas id="grafVoltaje"></canvas>
+
+        </div>
+
+        <div class="chart-box">
+
+            <div class="chart-header">
+
+                <div class="chart-title">
+
+                    Corriente
+
+                </div>
+
+                <button class="download-btn"
+                        onclick="descargarGrafica('grafCorriente','Corriente')">
+
+                    Descargar
+                </button>
+
+            </div>
+
+            <canvas id="grafCorriente"></canvas>
+
+        </div>
+
+        <div class="chart-box">
+
+            <div class="chart-header">
+
+                <div class="chart-title">
+
+                    Potencia
+
+                </div>
+
+                <button class="download-btn"
+                        onclick="descargarGrafica('grafPotencia','Potencia')">
+
+                    Descargar
+                </button>
+
+            </div>
+
+            <canvas id="grafPotencia"></canvas>
+
+        </div>
+
+        <div class="chart-box">
+
+            <div class="chart-header">
+
+                <div class="chart-title">
+
+                    Temperatura
+
+                </div>
+
+                <button class="download-btn"
+                        onclick="descargarGrafica('grafTemperatura','Temperatura')">
+
+                    Descargar
+                </button>
+
+            </div>
+
+            <canvas id="grafTemperatura"></canvas>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        // ==========================================
+        // VARIABLES
+        // ==========================================
+
+        let pausado = false;
+
+        let iniciado = false;
+
+        let tiempo = 0;
+
+        let datosExcel = [];
+
+        let intervalo = null;
+
+        let ultimoDato = Date.now();
+
+        // ==========================================
+        // CREAR GRAFICA
+        // ==========================================
+
+        function crearGrafica(
+            id,
+            nombre,
+            color
+        ) {
+
+            return new Chart(
+
+                document.getElementById(id),
+
+                {
+
+                    type: 'line',
+
+                    data: {
+
+                        labels: [],
+
+                        datasets: [{
+
+                            label: nombre,
+
+                            data: [],
+
+                            borderColor: color,
+
+                            backgroundColor:
+                                color + "22",
+
+                            borderWidth: 4,
+
+                            tension: 0.25,
+
+                            pointRadius: 2,
+
+                            pointHoverRadius: 8,
+
+                            fill: true
+                        }]
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        animation: false,
+
+                        interaction: {
+
+                            mode: 'index',
+
+                            intersect: false
+                        },
+
+                        plugins: {
+
+                            legend: {
+
+                                display: false
+                            },
+
+                            tooltip: {
+
+                                enabled: true,
+
+                                displayColors: false,
+
+                                callbacks: {
+
+                                    title: function(context) {
+
+                                        return "Tiempo: " +
+                                            context[0].label + " s";
+                                    }
+                                }
+                            }
+                        },
+
+                        scales: {
+
+                            x: {
+
+                                title: {
+
+                                    display: true,
+
+                                    text: "Tiempo (s)",
+
+                                    color: "#353535",
+
+                                    font: {
+
+                                        size: 18
+                                    }
+                                },
+
+                                ticks: {
+
+                                    color: "#353535"
+                                }
+                            },
+
+                            y: {
+
+                                title: {
+
+                                    display: true,
+
+                                    text: nombre,
+
+                                    color: "#353535",
+
+                                    font: {
+
+                                        size: 18
+                                    }
+                                },
+
+                                ticks: {
+
+                                    color: "#353535"
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+        }
+
+        // ==========================================
+        // GRAFICAS
+        // ==========================================
+
+        const grafVoltaje =
+            crearGrafica(
+                "grafVoltaje",
+                "Voltaje (V)",
+                "#38bdf8"
+            );
+
+        const grafCorriente =
+            crearGrafica(
+                "grafCorriente",
+                "Corriente (A)",
+                "#4ade80"
+            );
+
+        const grafPotencia =
+            crearGrafica(
+                "grafPotencia",
+                "Potencia (W)",
+                "#facc15"
+            );
+
+        const grafTemperatura =
+            crearGrafica(
+                "grafTemperatura",
+                "Temperatura (°C)",
+                "#fb7185"
+            );
+
+        // ==========================================
+        // AGREGAR DATOS
+        // ==========================================
+
+        function agregarDato(
+            grafica,
+            valor
+        ) {
+
+            grafica.data.labels.push(
+                tiempo.toFixed(1)
+            );
+
+            grafica.data.datasets[0]
+                .data.push(valor);
+
+            grafica.update();
+        }
+
+        // ==========================================
+        // ESTADO CONEXION
+        // ==========================================
+
+        function setEstado(
+            texto,
+            color
+        ) {
+
+            const estado =
+                document.getElementById(
+                    "estadoConexion"
+                );
+
+            estado.innerText =
+                texto;
+
+            estado.style.background =
+                color;
+        }
+
+        // ==========================================
+        // ACTUALIZAR DASHBOARD
+        // ==========================================
+
+        function actualizarDashboard(
+            volt,
+            corr,
+            pot,
+            temp
+        ) {
+
+            document.getElementById(
+                "voltaje"
+            ).innerText =
+                volt + " V";
+
+            document.getElementById(
+                "corriente"
+            ).innerText =
+                corr + " A";
+
+            document.getElementById(
+                "potencia"
+            ).innerText =
+                pot + " W";
+
+            document.getElementById(
+                "temperatura"
+            ).innerText =
+                temp + " °C";
+
+            agregarDato(
+                grafVoltaje,
+                volt
+            );
+
+            agregarDato(
+                grafCorriente,
+                corr
+            );
+
+            agregarDato(
+                grafPotencia,
+                pot
+            );
+
+            agregarDato(
+                grafTemperatura,
+                temp
+            );
+
+            const motor =
+                document.getElementById(
+                    "motorSelect"
+                ).value;
+
+            const ahora =
+                new Date();
+
+            datosExcel.push({
+
+                tiempo:
+                    tiempo.toFixed(1),
+
+                hora:
+                    ahora.toLocaleTimeString(),
+
+                voltaje:
+                    volt,
+
+                corriente:
+                    corr,
+
+                potencia:
+                    pot,
+
+                temperatura:
+                    temp,
+
+                motor:
+                    motor
+            });
+
+            tiempo += 0.4;
+        }
+
+        // ==========================================
+        // LEER ESP32
+        // ==========================================
+
+        async function actualizar() {
+
+            if (pausado) return;
+
+            try {
+
+                const response =
+                    await fetch(
+                        "http://192.168.4.1/datos"
+                    );
+
+                if(!response.ok) {
+
+                    throw new Error(
+                        "Sin respuesta"
+                    );
+                }
+
+                const datos =
+                    await response.json();
+
+                ultimoDato =
+                    Date.now();
+
+                setEstado(
+                    "🟢 CONECTADO",
+                    "#22c55e"
+                );
+
+                actualizarDashboard(
+
+                    datos[0],
+                    datos[1],
+                    datos[2],
+                    datos[3]
+                );
+            }
+
+            catch(error) {
+
+                setEstado(
+                    "🔴 DESCONECTADO",
+                    "#ef4444"
+                );
+
+                console.log(
+                    "Error ESP32:",
+                    error
+                );
+            }
+        }
+
+        // ==========================================
+        // VERIFICAR TIMEOUT
+        // ==========================================
+
+        setInterval(() => {
+
+            const ahora =
+                Date.now();
+
+            const diferencia =
+                ahora - ultimoDato;
+
+            if(diferencia > 2000) {
+
+                setEstado(
+                    "🟡 SIN DATOS",
+                    "#eab308"
+                );
+            }
+
+        }, 1000);
+
+        // ==========================================
+        // INICIAR
+        // ==========================================
+
+        function iniciarLectura() {
+
+            if(iniciado) return;
+
+            iniciado = true;
+
+            setEstado(
+                "🟡 BUSCANDO ESP32...",
+                "#eab308"
+            );
+
+            intervalo =
+                setInterval(
+                    actualizar,
+                    400
+                );
+        }
+
+        // ==========================================
+        // PAUSA
+        // ==========================================
+
+        function togglePausa() {
+
+            pausado = !pausado;
+
+            document.getElementById(
+                "btnPause"
+            ).innerText =
+
+                pausado
+                ? "Reanudar"
+                : "Pausar";
+        }
+
+        // ==========================================
+        // REINICIAR
+        // ==========================================
+
+        function reiniciarSistema() {
+
+            tiempo = 0;
+
+
+            [
+
+                grafVoltaje,
+                grafCorriente,
+                grafPotencia,
+                grafTemperatura
+
+            ].forEach(grafica => {
+
+                grafica.data.labels = [];
+
+                grafica.data.datasets[0]
+                    .data = [];
+
+                grafica.update();
+            });
+        }
+
+        // ==========================================
+        // CAPTURA
+        // ==========================================
+
+        function capturarDashboard() {
+
+            html2canvas(document.body, {
+
+                backgroundColor:
+                    "#ffffff"
+            })
+
+            .then(canvas => {
+
+                const link =
+                    document.createElement('a');
+
+                link.download =
+                    'BancoDC_Dashboard.png';
+
+                link.href =
+                    canvas.toDataURL();
+
+                link.click();
+            });
+        }
+
+        // ==========================================
+        // DESCARGAR GRAFICA
+        // ==========================================
+
+        function descargarGrafica(
+            id,
+            nombre
+        ) {
+
+            const canvasOriginal =
+                document.getElementById(id);
+
+            const canvasTemp =
+                document.createElement("canvas");
+
+            canvasTemp.width =
+                canvasOriginal.width;
+
+            canvasTemp.height =
+                canvasOriginal.height;
+
+            const ctx =
+                canvasTemp.getContext("2d");
+
+            ctx.fillStyle =
+                "white";
+
+            ctx.fillRect(
+                0,
+                0,
+                canvasTemp.width,
+                canvasTemp.height
+            );
+
+            ctx.drawImage(
+                canvasOriginal,
+                0,
+                0
+            );
+
+            const link =
+                document.createElement('a');
+
+            link.download =
+                nombre + ".png";
+
+            link.href =
+                canvasTemp.toDataURL();
+
+            link.click();
+        }
+
+        // ==========================================
+        // EXPORTAR EXCEL
+        // ==========================================
+
+        function exportarExcel() {
+
+            const hoja =
+                XLSX.utils.json_to_sheet(
+                    datosExcel
+                );
+
+            const libro =
+                XLSX.utils.book_new();
+
+            XLSX.utils.book_append_sheet(
+                libro,
+                hoja,
+                "Datos"
+            );
+
+            XLSX.writeFile(
+                libro,
+                "BancoDC_Datos.xlsx"
+            );
+        }
+
+    </script>
+
+</body>
+
+</html>
